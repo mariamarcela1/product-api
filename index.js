@@ -1,28 +1,34 @@
-// index.js
-const express = require('express');
-const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
-const productRoutes = require('./routes/productRoutes');
-require('dotenv').config();
+const express = require("express");
+const mongoose = require("mongoose");
+const server = express();
 
-const app = express();
-const port = process.env.PORT || 3000;
+const productRoutes = require("./routes/productRoutes");
 
-// Middleware
-app.use(bodyParser.json());
+server.use(
+  express.urlencoded({
+    extended: true,
+  })
+);
 
-// Conectar ao MongoDB Atlas
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+server.use(express.json());
 
+server.use("/", productRoutes);
 
-// Rotas
-app.use('/api/products', productRoutes);
+const DB_USER = 'mariamarcela';
+const DB_PASSWORD = encodeURIComponent('a');
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+// Conexão com MongoDB Atlas
+mongoose.connect('mongodb+srv://'+ DB_USER + ':' + DB_PASSWORD + '@cluster0.jheny4w.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0');
+
+// Eventos de conexão
+mongoose.connection.on('connected', () => {
+    console.log('Conectado ao MongoDB!');
+});
+
+mongoose.connection.on('error', (err) => {
+    console.error('Erro de conexão com MongoDB:', err);
+});
+
+server.listen(3000, () => {
+  console.log("Server listening on port 3000");
 });

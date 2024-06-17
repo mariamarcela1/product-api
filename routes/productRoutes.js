@@ -1,79 +1,159 @@
-const express = require('express');
-const router = express.Router();
-const Product = require('../models/product');
+const router = require("express").Router();
+const Produto = require("../models/Products");
 
-// Listar todas as informações de todos os produtos
-router.get('/', async (req, res) => {
+// Obter todos os produtos
+router.get("/getAll", async (req, res) => {
   try {
-    const products = await Product.find();
-    res.json(products);
+    const produtos = await Produto.find();
+    res.status(200).json(produtos);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Erro ao buscar produtos:", err);
+    res.status(500).json({
+      success: false,
+      error: "Erro ao buscar produtos, o servidor retornou 500.",
+    });
   }
 });
 
-// Listar todas as informações de um determinado produto usando seu ID ou Nome
-router.get('/:idOrName', async (req, res) => {
-  const { idOrName } = req.params;
+// Obter um produto por ID
+router.get("/getById/:id", async (req, res) => {
+  const { id } = req.params;
   try {
-    let product;
-    if (mongoose.Types.ObjectId.isValid(idOrName)) {
-      product = await Product.findById(idOrName);
-    } else {
-      product = await Product.findOne({ name: idOrName });
+    const produto = await Produto.findById(id);
+    if (!produto) {
+      return res
+        .status(404)
+        .json({ success: false, error: "Produto não encontrado." });
     }
-    if (product == null) {
-      return res.status(404).json({ message: 'Product not found' });
-    }
-    res.json(product);
+    res.status(200).json(produto);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Erro ao buscar produto:", err);
+    res.status(500).json({
+      success: false,
+      error: "Erro ao buscar produto, verifique os dados.",
+    });
   }
 });
 
-// Cadastrar um novo produto
-router.post('/', async (req, res) => {
-  const product = new Product({
-    name: req.body.name,
-    description: req.body.description,
-    color: req.body.color,
-    weight: req.body.weight,
-    type: req.body.type,
-    price: req.body.price
+// Criar um novo produto
+router.post("/create", async (req, res) => {
+  const {
+    name,
+    description,
+    color,
+    weight,
+    type,
+    price,
+  } = req.body;
+
+  const dateAdded = new Date();
+
+  if (!name || !price || !description) {
+    return res.status(400).json({
+      success: false,
+      error: "Nome, preço e descrição são obrigatórios",
+    });
+  }
+
+  const produto = new Produto({
+    name,
+    description,
+    color,
+    weight,
+    type,
+    price,
+    dateAdded,
   });
 
   try {
-    const newProduct = await product.save();
-    res.status(201).json(newProduct);
+    await produto.save();
+    res
+      .status(201)
+      .json({ success: true, message: "Produto criado.", produto });
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    console.error("Erro ao criar produto:", err);
+    res.status(500).json({
+      success: false,
+      error: "Erro ao criar produto, verifique os dados.",
+    });
   }
 });
 
-// Atualizar um produto existente
-router.patch('/:id', async (req, res) => {
+// Atualizar um produto por ID
+router.put("/update/:id", async (req, res) => {
+  const { id } = req.params;
+  const {
+    name,
+    description,
+    color,
+    weight,
+    type,
+    price,
+    dateAdded,
+  } = req.body;
+
+  if (!name || !price || !description) {
+    return res.status(400).json({
+      success: false,
+      error: "Nome, preço e descrição são obrigatórios",
+    });
+  }
+
+  const produto = {
+   name,
+    description,
+    color,
+    weight,
+    type,
+    price,
+    dateAdded,
+  };
+
   try {
-    const updatedProduct = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (updatedProduct == null) {
-      return res.status(404).json({ message: 'Product not found' });
+    const updatedProduct = await Produto.findByIdAndUpdate(id, produto, {
+      new: true,
+    });
+
+    if (!updatedProduct) {
+      return res
+        .status(404)
+        .json({ success: false, error: "Produto não encontrado." });
     }
-    res.json(updatedProduct);
+
+    res
+      .status(200)
+      .json({ success: true, message: "Produto atualizado.", updatedProduct });
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    console.error("Erro ao atualizar produto:", err);
+    res.status(500).json({
+      success: false,
+      error: "Erro ao atualizar produto, verifique os dados.",
+    });
   }
 });
 
-// Deletar um produto
-router.delete('/:id', async (req, res) => {
+// Deletar um produto por ID
+router.delete("/delete/:id", async (req, res) => {
+  const { id } = req.params;
+
   try {
-    const product = await Product.findById(req.params.id);
-    if (product == null) {
-      return res.status(404).json({ message: 'Product not found' });
+    const deletedProduct = await Produto.findByIdAndDelete(id);
+
+    if (!deletedProduct) {
+      return res
+        .status(404)
+        .json({ success: false, error: "Produto não encontrado." });
     }
-    await product.remove();
-    res.json({ message: 'Deleted product' });
+
+    res
+      .status(200)
+      .json({ success: true, message: "Produto deletado.", deletedProduct });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Erro ao deletar produto:", err);
+    res.status(500).json({
+      success: false,
+      error: "Erro ao deletar produto, verifique os dados.",
+    });
   }
 });
 
